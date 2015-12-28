@@ -1,0 +1,159 @@
+require 'date'
+
+class MoonPosition
+  attr_reader :julian_date, :date_time
+
+  def initialize datetime=nil
+    @date_time = datetime ? datetime : DateTime.now
+    @julian_date = datetime.ajd.to_f
+  end
+
+  def longitude # l''
+    corrected_longitude + final_correction
+  end
+
+  private
+
+  def days_since_epoch # D
+    julian_date - 2455196.5
+  end
+
+  def mean_longitude # l
+    (13.1763966 * days_since_epoch + mean_longitude_at_epoch) % 360
+  end
+
+  def mean_longitude_at_epoch # lo
+    91.929336
+  end
+
+  def mean_longitude_of_perigee_at_epoch # Po
+    130.143076
+  end
+
+  def mean_longitude_of_node_at_epoch # No
+    291.682547
+  end
+
+  def mean_anomaly # Mm
+    (mean_longitude -
+     (0.1114041 * days_since_epoch) - mean_longitude_of_perigee_at_epoch
+    ) % 360
+  end
+
+  def ascending_node_mean_longitude # N
+    (mean_longitude_of_node_at_epoch -
+      0.0529539 * days_since_epoch) % 360
+  end
+
+  def sun_longitude
+    SunPosition.new(date_time).longitude
+  end
+
+  def corrections_for_evection # Ev
+    c = (mean_longitude - sun_longitude)
+    x = (2 * c) - mean_anomaly
+    1.2739 * Math.sin(x * Math::PI / 180)
+  end
+
+  def sun_mean_anomaly
+    SunPosition.new(date_time).mean_anomaly
+  end
+
+  def annual_equation # Ae
+    0.1858 * Math.sin(sun_mean_anomaly)# * Math::PI / 180)
+  end
+
+  def third_correction # A3
+    0.37 * Math.sin(sun_mean_anomaly) #* Math::PI / 180)
+  end
+
+  def corrected_anomaly # M'm
+    mean_anomaly + corrections_for_evection + annual_equation - third_correction
+  end
+
+  def correction_for_equation_of_centre # Ec
+    6.2886 * Math.sin(corrected_anomaly * Math::PI / 180)
+  end
+
+  def another_correction # A4
+    0.214 * Math.sin(2 * corrected_anomaly * Math::PI / 180)
+  end
+
+  def corrected_longitude # l'
+    mean_longitude + corrections_for_evection +
+      correction_for_equation_of_centre - annual_equation +
+      annual_equation
+  end
+
+  def final_correction # V
+    0.6583 * Math.sin((2 * (corrected_longitude - sun_longitude)) * Math::PI / 180)
+  end
+end
+
+
+class SunPosition
+
+  # Epoch refers to 2010 January 0.0
+
+  attr_reader :julian_date
+
+  def initialize datetime=nil
+    jdate = datetime ? datetime : DateTime.now
+    @julian_date = jdate.ajd.to_f
+  end
+
+
+  # longitude of the Sun
+  def longitude #λ₀
+    (n + ec + εg) % 360
+  end
+
+
+  # If the Earth moves in a circle around the Earth at a Constant speed, rather
+  # than an ellipse, this is the angle (M₀, mean anomaly) the Sun would have moved
+  # since it passed through perigee
+
+  def mean_anomaly
+    mean_anomaly = n + εg - ώg
+    mean_anomaly < 0 ? mean_anomaly + 360 : mean_anomaly
+  end
+
+  private
+
+  def ec
+    mean_anomaly_in_radians = mean_anomaly * Math::PI / 180
+    (360 / Math::PI) * e * Math.sin(mean_anomaly_in_radians)
+  end
+
+  def n
+    ((360 / 365.242191) * days_since_epoch) % 360
+  end
+
+  def days_since_epoch
+    julian_date - 2455196.5
+  end
+
+  # ecliptic longitude at epoch 2010.0
+  def εg
+    279.557208
+  end
+
+  # ecliptic longitude of perigee at epoch 2010.0
+  def ώg
+    283.112438
+  end
+
+  # eccentricity of orbit at epoch 2010.0
+  def e
+    0.016705
+  end
+end
+
+d = DateTime.now
+mp = MoonPosition.new(d)
+sp = SunPosition.new(d)
+
+moon_age = mp.longitude - sp.longitude
+phase = 0.5 * (1.to_f - Math.cos(moon_age * Math::PI / 180))
+
+puts "phase: #{phase}"
