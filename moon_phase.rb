@@ -150,10 +150,19 @@ class SunPosition
 end
 
 d = DateTime.now
+puts "DT: #{d.to_s})"
 mp = MoonPosition.new(d)
 sp = SunPosition.new(d)
 
 moon_age = mp.longitude - sp.longitude
 phase = 0.5 * (1.to_f - Math.cos(moon_age * Math::PI / 180))
+rounded_phase = "#{(phase * 100).round(2)}%"
 
-puts "phase: #{phase}"
+action = (moon_age < 0) ? '◣' : '◢'
+
+unless rounded_phase == ('100.0%' || '0.0%')
+  rounded_phase += " #{action}"
+end
+
+puts "moon_age: #{moon_age}"
+puts "phase: #{rounded_phase}"
