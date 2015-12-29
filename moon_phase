@@ -1,3 +1,8 @@
+#!/usr/bin/env ruby
+
+# Calculations taken from: Practical Astronomy With Your Calculator or Spreadsheet by
+# Peter Duffett-Smith and Johathan Zwart, 4th Edition, Cambridge University Press, 2011
+
 require 'date'
 
 class MoonPosition
@@ -150,7 +155,6 @@ class SunPosition
 end
 
 d = DateTime.now
-puts "DT: #{d.to_s})"
 mp = MoonPosition.new(d)
 sp = SunPosition.new(d)
 
@@ -164,5 +168,4 @@ unless rounded_phase == ('100.0%' || '0.0%')
   rounded_phase += " #{action}"
 end
 
-puts "moon_age: #{moon_age}"
-puts "phase: #{rounded_phase}"
+puts rounded_phase
